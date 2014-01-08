@@ -1,6 +1,7 @@
 package linkjvm.debugger.client;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedList;
@@ -15,6 +16,8 @@ public class Server{
 	
 	private boolean stopAcceptThread = false;
 	private boolean stopListenThread = false;
+	
+	private OutputStream out = null;
 	
 	public Server(){
 		try {
@@ -52,6 +55,10 @@ public class Server{
 		System.out.println("Done.");
 	}
 	
+	public void setOutputStream(OutputStream out){
+		this.out = out;
+	}
+	
 	private class AcceptThread implements Runnable {
 
 		@Override
@@ -60,13 +67,13 @@ public class Server{
 				Socket client = null;
 				try {
 					client = serverSocket.accept();
+					System.out.println("[DEBUG]: Added client.");
 					synchronized(clients){
 						clients.add(client);
 					}
 				} catch (IOException e) {	}
 			}
 		}
-		
 	}
 	
 	
@@ -80,13 +87,9 @@ public class Server{
 						try {
 							Scanner input = new Scanner(client.getInputStream());
 							if(input.hasNextLine()){
-								System.out.println(input.nextLine());
+								out.write(input.nextLine().getBytes());
 							}
-							input.close();
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+						} catch (IOException e) {	}
 					}
 				}
 			}
