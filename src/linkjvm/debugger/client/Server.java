@@ -87,7 +87,7 @@ public class Server{
 						try {
 							Scanner input = new Scanner(client.getInputStream());
 							if(input.hasNextLine()){
-								out.write(input.nextLine().getBytes());
+								out.write(input.nextLine().concat("\n").getBytes());
 							}
 						} catch (IOException e) {	}
 					}
