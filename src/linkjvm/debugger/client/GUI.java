@@ -3,6 +3,7 @@ package linkjvm.debugger.client;
 import java.awt.Container;
 
 import javax.swing.JFrame;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
 public class GUI {
@@ -11,6 +12,7 @@ public class GUI {
 	private TextAreaOutputStream out;
 	
 	private JTextArea outputArea;
+	private JScrollPane scrollPane;
 	
 	public GUI(){
 		frame = new JFrame();
@@ -18,7 +20,8 @@ public class GUI {
 		contentPane = frame.getContentPane();
 		outputArea = new JTextArea();
 		outputArea.setEditable(false);
-		contentPane.add(outputArea);
+		scrollPane = new JScrollPane(outputArea);
+		contentPane.add(scrollPane);
 		frame.setVisible(true);
 		frame.setSize(600, 400);
 		out = new TextAreaOutputStream(outputArea);
