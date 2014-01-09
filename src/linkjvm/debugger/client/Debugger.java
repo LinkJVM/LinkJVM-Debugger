@@ -7,8 +7,13 @@ public class Debugger {
 	
 	public Debugger(String[] args){
 		Server server = new Server();
-		GUI gui = new GUI();
-		server.setOutputStream((args.length > 0 && (args[0].equals("--no-gui") || args[0].equals("--cli"))) ? System.out : gui.getOutputStream());
+		if(args.length > 0 && (args[0].equals("--no-gui") || args[0].equals("--cli"))){
+			server.setOutputStream(System.out);
+		}
+		else{
+			GUI gui = new GUI();
+			server.setOutputStream(gui.getOutputStream());
+		}
 		server.start();
 	}	
 }

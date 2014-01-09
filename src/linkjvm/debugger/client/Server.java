@@ -1,21 +1,21 @@
 package linkjvm.debugger.client;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedList;
-import java.util.Scanner;
 
 
 public class Server{
 	public static final int PORT = 62512;
 	
 	private ServerSocket serverSocket;
-	private final LinkedList<Socket> clients;
+	private final LinkedList<ClientThread> clients;
 	
 	private boolean stopAcceptThread = false;
-	private boolean stopListenThread = false;
 	
 	private OutputStream out = null;
 	
@@ -27,32 +27,31 @@ public class Server{
 			System.out.println("[ERROR]: Cannot create server on port " + PORT + ". Use another port.");
 			e.printStackTrace();
 		}
-		clients = new LinkedList<Socket>();
+		clients = new LinkedList<ClientThread>();
 	}
 	
 	public void start(){
 		new Thread(new AcceptThread()).start();
-		new Thread(new ListenThread()).start();
 	}
 	
 	public void stop(){
 		System.out.print("[DEBUG]: Closing down...");
 		stopAcceptThread = true;
-		stopListenThread = true;
 		try {
 			serverSocket.close();
-		} catch (IOException e) { }
-		if(stopListenThread){
-			for(Socket client : clients){
-				try {
-					client.close();
-				} catch (IOException e) {
-					System.out.println("[ERROR]: Could not close connect to client " + client + ".");
-					e.printStackTrace();
-				}
-			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		for(ClientThread client : clients){
+			client.stop();
 		}
 		System.out.println("Done.");
+	}
+	
+	private void removeClient(ClientThread client){
+		synchronized (clients) {
+			clients.remove(client);
+		}
 	}
 	
 	public void setOutputStream(OutputStream out){
@@ -67,32 +66,57 @@ public class Server{
 				Socket client = null;
 				try {
 					client = serverSocket.accept();
-					System.out.println("[DEBUG]: Added client.");
 					synchronized(clients){
-						clients.add(client);
+						clients.add(new ClientThread(client));
 					}
 				} catch (IOException e) {	}
 			}
 		}
 	}
 	
-	
-	private class ListenThread implements Runnable {
-
+	private class ClientThread implements Runnable {
+		private Socket socket;
+		private BufferedReader inputReader;
+		
+		public ClientThread(Socket socket){
+			this.socket = socket;
+			try {
+				inputReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			new Thread(this).start();
+		}
+		
 		@Override
 		public void run() {
-			while(!stopListenThread){
-				synchronized(clients){
-					for(Socket client : clients){
-						try {
-							Scanner input = new Scanner(client.getInputStream());
-							if(input.hasNextLine()){
-								out.write(input.nextLine().concat("\n").getBytes());
-							}
-						} catch (IOException e) {	}
+			int input;
+			try {
+				while((input = inputReader.read()) != -1){
+					synchronized (out) {
+						out.write(input);
 					}
 				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				try {
+					inputReader.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				} finally {
+					removeClient(this);
+				}
 			}
+			
 		}
+		
+		public void stop(){
+			try {
+				socket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}		
 	}
 }
